@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   ScrollView,
@@ -17,14 +18,8 @@ import { FlashDeals } from "@/components/FlashDeals";
 import { MenuSection } from "@/components/MenuSection";
 import { PromoBanner } from "@/components/PromoBanner";
 import { useCart } from "@/context/CartContext";
-import {
-  getDealItems,
-  getItemsByCategory,
-  menuCategories,
-  menuItems,
-  promoSlides,
-  restaurant,
-} from "@/data/menu";
+import { useProducts } from "@/context/ProductsContext";
+import { promoSlides, restaurant } from "@/data/menu";
 import { useColors } from "@/hooks/useColors";
 
 export default function HomeScreen() {
@@ -32,6 +27,15 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { itemCount } = useCart();
+  const {
+    products,
+    loading,
+    error,
+    refetch,
+    getByCategory,
+    getDealProducts,
+    getCategories,
+  } = useProducts();
 
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -39,7 +43,7 @@ export default function HomeScreen() {
   const topPad = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 + 84 : 100;
 
-  const dealItems = getDealItems().map((i) => ({
+  const dealItems = getDealProducts().map((i) => ({
     ...i,
     restaurantId: "1",
     restaurantName: restaurant.name,
@@ -47,7 +51,7 @@ export default function HomeScreen() {
 
   const isSearching = searchQuery.length > 0;
   const searchResults = isSearching
-    ? menuItems.filter(
+    ? products.filter(
         (i) =>
           i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           i.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -55,11 +59,13 @@ export default function HomeScreen() {
       )
     : [];
 
-  const categoryItems = getItemsByCategory(selectedCategory).map((i) => ({
+  const categoryItems = getByCategory(selectedCategory).map((i) => ({
     ...i,
     restaurantId: "1",
     restaurantName: restaurant.name,
   }));
+
+  const menuCategories = getCategories();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -149,8 +155,29 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {isSearching ? (
-          /* Search Results */
+        {loading ? (
+          <View style={styles.loadingState}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
+              Loading menu...
+            </Text>
+          </View>
+        ) : error ? (
+          <View style={styles.errorState}>
+            <Feather name="wifi-off" size={40} color={colors.mutedForeground} />
+            <Text style={[styles.errorTitle, { color: colors.foreground }]}>
+              Couldn't load menu
+            </Text>
+            <Pressable
+              onPress={refetch}
+              style={[styles.retryBtn, { backgroundColor: colors.primary, borderRadius: colors.radius }]}
+            >
+              <Text style={[styles.retryText, { color: colors.primaryForeground }]}>
+                Try Again
+              </Text>
+            </Pressable>
+          </View>
+        ) : isSearching ? (
           <View style={styles.searchSection}>
             <Text style={[styles.searchResultsLabel, { color: colors.mutedForeground }]}>
               {searchResults.length} result{searchResults.length !== 1 ? "s" : ""} for "{searchQuery}"
@@ -178,7 +205,7 @@ export default function HomeScreen() {
               <View style={styles.infoItem}>
                 <Feather name="truck" size={14} color={colors.primary} />
                 <Text style={[styles.infoText, { color: colors.foreground }]}>
-                  ${restaurant.deliveryFee.toFixed(2)} delivery
+                  GH₵{restaurant.deliveryFee.toFixed(2)} delivery
                 </Text>
               </View>
               <View style={[styles.infoDivider, { backgroundColor: colors.border }]} />
@@ -192,7 +219,7 @@ export default function HomeScreen() {
               <View style={styles.infoItem}>
                 <Feather name="dollar-sign" size={14} color={colors.primary} />
                 <Text style={[styles.infoText, { color: colors.foreground }]}>
-                  ${restaurant.minOrder} min order
+                  GH₵{restaurant.minOrder} min
                 </Text>
               </View>
             </View>
@@ -330,6 +357,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Inter_400Regular",
     padding: 0,
+  },
+  loadingState: {
+    paddingTop: 80,
+    alignItems: "center",
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+  },
+  errorState: {
+    paddingTop: 80,
+    alignItems: "center",
+    gap: 16,
+    paddingHorizontal: 32,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: "600" as const,
+    fontFamily: "Inter_600SemiBold",
+  },
+  retryBtn: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    marginTop: 4,
+  },
+  retryText: {
+    fontSize: 15,
+    fontWeight: "600" as const,
+    fontFamily: "Inter_600SemiBold",
   },
   searchSection: {
     paddingHorizontal: 4,

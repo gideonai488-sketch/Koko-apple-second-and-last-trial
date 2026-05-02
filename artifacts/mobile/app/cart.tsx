@@ -33,7 +33,7 @@ export default function CartScreen() {
   const topPad = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
   const bottomPad = Platform.OS === "web" ? insets.bottom + 34 : insets.bottom;
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (items.length === 0) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setPlacing(true);
@@ -41,7 +41,7 @@ export default function CartScreen() {
     const restaurantId = items[0].restaurantId;
     const restaurantName = items[0].restaurantName;
 
-    placeOrder(
+    await placeOrder(
       restaurantId,
       restaurantName,
       items.map((i) => ({

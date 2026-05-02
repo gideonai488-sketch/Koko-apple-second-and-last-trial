@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   Image,
@@ -16,7 +17,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useCart } from "@/context/CartContext";
-import { findItem, getItemsByCategory, restaurant } from "@/data/menu";
+import { useProducts } from "@/context/ProductsContext";
+import { restaurant } from "@/data/menu";
 import { useColors } from "@/hooks/useColors";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -27,14 +29,23 @@ export default function ItemDetailScreen() {
   const insets = useSafeAreaInsets();
   const { itemId } = useLocalSearchParams<{ itemId: string }>();
   const { addItem, items: cartItems, updateQuantity } = useCart();
+  const { findProduct, getByCategory, loading } = useProducts();
   const [added, setAdded] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  const item = findItem(itemId ?? "");
+  const item = findProduct(itemId ?? "");
   const cartItem = cartItems.find((c) => c.id === itemId);
   const quantity = cartItem?.quantity ?? 0;
 
   const bottomPad = Platform.OS === "web" ? insets.bottom + 34 : insets.bottom;
+
+  if (loading) {
+    return (
+      <View style={[styles.notFound, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   if (!item) {
     return (
@@ -54,7 +65,7 @@ export default function ItemDetailScreen() {
     ? Math.round((1 - item.price / item.originalPrice) * 100)
     : 0;
 
-  const similarItems = getItemsByCategory(item.category)
+  const similarItems = getByCategory(item.category)
     .filter((m) => m.id !== item.id)
     .slice(0, 4);
 
@@ -84,7 +95,7 @@ export default function ItemDetailScreen() {
       {/* Image Hero */}
       <View style={styles.imageContainer}>
         {item.image ? (
-          <Image source={item.image} style={styles.heroImage} />
+          <Image source={{ uri: item.image }} style={styles.heroImage} />
         ) : (
           <View style={[styles.imagePlaceholder, { backgroundColor: colors.muted }]}>
             <Feather name="coffee" size={64} color={colors.mutedForeground} />
@@ -155,7 +166,7 @@ export default function ItemDetailScreen() {
                 ]}
               >
                 <Feather name="award" size={11} color={colors.primary} />
-                <Text style={[styles.tagText, { color: colors.primary }]}>Popular</Text>
+                <Text style={[styles.tagText, { color: colors.primary }]}>Best Seller</Text>
               </View>
             )}
             {item.trending && (
@@ -166,33 +177,37 @@ export default function ItemDetailScreen() {
                 ]}
               >
                 <Feather name="trending-up" size={11} color="#F59E0B" />
-                <Text style={[styles.tagText, { color: "#F59E0B" }]}>Trending</Text>
-              </View>
-            )}
-            {item.isNew && (
-              <View
-                style={[
-                  styles.tag,
-                  { backgroundColor: "#7C3AED18", borderRadius: 100, borderColor: "#7C3AED40" },
-                ]}
-              >
-                <Feather name="star" size={11} color="#7C3AED" />
-                <Text style={[styles.tagText, { color: "#7C3AED" }]}>New</Text>
+                <Text style={[styles.tagText, { color: "#F59E0B" }]}>Hot</Text>
               </View>
             )}
           </View>
 
           <Text style={[styles.itemName, { color: colors.foreground }]}>{item.name}</Text>
 
+          {/* Rating + sold */}
+          {item.rating != null && (
+            <View style={styles.ratingRow}>
+              <Feather name="star" size={14} color="#F59E0B" />
+              <Text style={[styles.ratingText, { color: colors.foreground }]}>
+                {item.rating.toFixed(1)}
+              </Text>
+              {item.sold != null && (
+                <Text style={[styles.soldText, { color: colors.mutedForeground }]}>
+                  · {item.sold.toLocaleString()} sold
+                </Text>
+              )}
+            </View>
+          )}
+
           {/* Price Block */}
           <View style={styles.priceBlock}>
             <Text style={[styles.price, { color: colors.primary }]}>
-              ${item.price.toFixed(2)}
+              GH₵{item.price.toFixed(2)}
             </Text>
             {item.originalPrice && (
               <View style={styles.originalPriceBlock}>
                 <Text style={[styles.originalPrice, { color: colors.mutedForeground }]}>
-                  ${item.originalPrice.toFixed(2)}
+                  GH₵{item.originalPrice.toFixed(2)}
                 </Text>
                 <View
                   style={[
@@ -201,7 +216,7 @@ export default function ItemDetailScreen() {
                   ]}
                 >
                   <Text style={[styles.savingText, { color: colors.success }]}>
-                    Save ${(item.originalPrice - item.price).toFixed(2)}
+                    Save GH₵{(item.originalPrice - item.price).toFixed(2)}
                   </Text>
                 </View>
               </View>
@@ -212,41 +227,13 @@ export default function ItemDetailScreen() {
             {item.description}
           </Text>
 
-          {/* Info Strip */}
+          {/* Delivery Info Strip */}
           <View
             style={[
               styles.infoStrip,
               { backgroundColor: colors.muted, borderRadius: colors.radius },
             ]}
           >
-            {item.calories && (
-              <View style={styles.infoItem}>
-                <Feather name="zap" size={14} color={colors.primary} />
-                <View>
-                  <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>
-                    Calories
-                  </Text>
-                  <Text style={[styles.infoValue, { color: colors.foreground }]}>
-                    {item.calories}
-                  </Text>
-                </View>
-              </View>
-            )}
-            {item.calories && <View style={[styles.divider, { backgroundColor: colors.border }]} />}
-            {item.prepTime && (
-              <View style={styles.infoItem}>
-                <Feather name="clock" size={14} color={colors.primary} />
-                <View>
-                  <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>
-                    Prep time
-                  </Text>
-                  <Text style={[styles.infoValue, { color: colors.foreground }]}>
-                    {item.prepTime}
-                  </Text>
-                </View>
-              </View>
-            )}
-            {item.prepTime && <View style={[styles.divider, { backgroundColor: colors.border }]} />}
             <View style={styles.infoItem}>
               <Feather name="truck" size={14} color={colors.primary} />
               <View>
@@ -255,6 +242,30 @@ export default function ItemDetailScreen() {
                 </Text>
                 <Text style={[styles.infoValue, { color: colors.foreground }]}>
                   {restaurant.deliveryTime} min
+                </Text>
+              </View>
+            </View>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <View style={styles.infoItem}>
+              <Feather name="dollar-sign" size={14} color={colors.primary} />
+              <View>
+                <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>
+                  Min Order
+                </Text>
+                <Text style={[styles.infoValue, { color: colors.foreground }]}>
+                  GH₵{restaurant.minOrder}
+                </Text>
+              </View>
+            </View>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <View style={styles.infoItem}>
+              <Feather name="package" size={14} color={colors.primary} />
+              <View>
+                <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>
+                  Stock
+                </Text>
+                <Text style={[styles.infoValue, { color: colors.foreground }]}>
+                  {item.stock != null ? `${item.stock} left` : "In stock"}
                 </Text>
               </View>
             </View>
@@ -278,7 +289,7 @@ export default function ItemDetailScreen() {
                     onPress={() =>
                       router.replace({
                         pathname: "/item/[itemId]" as any,
-                        params: { itemId: si.id, restaurantId: "1" },
+                        params: { itemId: si.id },
                       })
                     }
                     style={({ pressed }) => [
@@ -293,7 +304,7 @@ export default function ItemDetailScreen() {
                   >
                     {si.image ? (
                       <Image
-                        source={si.image}
+                        source={{ uri: si.image }}
                         style={[
                           styles.similarImage,
                           {
@@ -329,7 +340,7 @@ export default function ItemDetailScreen() {
                         {si.name}
                       </Text>
                       <Text style={[styles.similarPrice, { color: colors.primary }]}>
-                        ${si.price.toFixed(2)}
+                        GH₵{si.price.toFixed(2)}
                       </Text>
                     </View>
                   </Pressable>
@@ -386,7 +397,7 @@ export default function ItemDetailScreen() {
               >
                 <Feather name="shopping-bag" size={18} color={colors.card} />
                 <Text style={[styles.viewCartText, { color: colors.card }]}>
-                  View Cart · ${(item.price * quantity).toFixed(2)}
+                  View Cart · GH₵{(item.price * quantity).toFixed(2)}
                 </Text>
               </Pressable>
             </Animated.View>
@@ -402,7 +413,7 @@ export default function ItemDetailScreen() {
             >
               <Feather name={added ? "check" : "shopping-bag"} size={20} color="#fff" />
               <Text style={styles.addToCartText}>
-                {added ? "Added to Cart!" : `Add to Cart · $${item.price.toFixed(2)}`}
+                {added ? "Added to Cart!" : `Add to Cart · GH₵${item.price.toFixed(2)}`}
               </Text>
             </Pressable>
           </Animated.View>
@@ -434,6 +445,9 @@ const styles = StyleSheet.create({
   tag: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1 },
   tagText: { fontSize: 12, fontWeight: "600" as const, fontFamily: "Inter_600SemiBold" },
   itemName: { fontSize: 26, fontWeight: "700" as const, fontFamily: "Inter_700Bold", lineHeight: 32 },
+  ratingRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 8 },
+  ratingText: { fontSize: 14, fontWeight: "600" as const, fontFamily: "Inter_600SemiBold" },
+  soldText: { fontSize: 13, fontFamily: "Inter_400Regular" },
   priceBlock: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 10, flexWrap: "wrap" },
   price: { fontSize: 28, fontWeight: "700" as const, fontFamily: "Inter_700Bold" },
   originalPriceBlock: { flexDirection: "row", alignItems: "center", gap: 8 },
@@ -441,7 +455,7 @@ const styles = StyleSheet.create({
   savingBadge: { paddingHorizontal: 10, paddingVertical: 4 },
   savingText: { fontSize: 12, fontWeight: "600" as const, fontFamily: "Inter_600SemiBold" },
   description: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22, marginTop: 12 },
-  infoStrip: { flexDirection: "row", alignItems: "center", padding: 14, marginTop: 16, gap: 0 },
+  infoStrip: { flexDirection: "row", alignItems: "center", padding: 14, marginTop: 16 },
   infoItem: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center" },
   divider: { width: 1, height: 36, marginHorizontal: 4 },
   infoLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },

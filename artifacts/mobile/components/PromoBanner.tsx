@@ -23,7 +23,7 @@ function Slide({ slide }: { slide: PromoSlide }) {
 
   return (
     <View style={styles.slide}>
-      <Image source={slide.image} style={styles.image} />
+      <Image source={{ uri: slide.imageUri }} style={styles.image} />
       <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
         <View style={styles.darkOverlay} />
       </View>

@@ -56,7 +56,7 @@ function MenuItemCard({ item }: { item: MenuItem }) {
     >
       {item.image ? (
         <Image
-          source={item.image}
+          source={{ uri: item.image }}
           style={[
             styles.image,
             {
@@ -86,14 +86,9 @@ function MenuItemCard({ item }: { item: MenuItem }) {
         </View>
       )}
 
-      {item.isNew && !discountPct && (
-        <View
-          style={[
-            styles.discountBadge,
-            { backgroundColor: "#7C3AED" },
-          ]}
-        >
-          <Text style={styles.discountText}>New</Text>
+      {item.badge === "hot" && !discountPct && (
+        <View style={[styles.discountBadge, { backgroundColor: "#EF4444" }]}>
+          <Text style={styles.discountText}>🔥 Hot</Text>
         </View>
       )}
 
@@ -115,21 +110,25 @@ function MenuItemCard({ item }: { item: MenuItem }) {
         >
           {item.name}
         </Text>
-        {item.calories && (
-          <Text style={[styles.meta, { color: colors.mutedForeground }]}>
-            {item.calories}
-          </Text>
+        {item.rating != null && (
+          <View style={styles.ratingRow}>
+            <Feather name="star" size={10} color="#F59E0B" />
+            <Text style={[styles.meta, { color: colors.mutedForeground }]}>
+              {item.rating.toFixed(1)}
+              {item.sold != null ? ` · ${(item.sold / 1000).toFixed(1)}k sold` : ""}
+            </Text>
+          </View>
         )}
         <View style={styles.priceRow}>
           <View style={styles.prices}>
             <Text style={[styles.price, { color: colors.primary }]}>
-              ${item.price.toFixed(2)}
+              GH₵{item.price.toFixed(2)}
             </Text>
             {item.originalPrice && (
               <Text
                 style={[styles.origPrice, { color: colors.mutedForeground }]}
               >
-                ${item.originalPrice.toFixed(2)}
+                GH₵{item.originalPrice.toFixed(2)}
               </Text>
             )}
           </View>
@@ -288,6 +287,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600" as const,
     fontFamily: "Inter_600SemiBold",
+  },
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
   },
   meta: {
     fontSize: 11,

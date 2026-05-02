@@ -12,7 +12,7 @@ import {
   View,
 } from "react-native";
 
-import { MenuItem } from "@/data/restaurants";
+import { MenuItem } from "@/data/menu";
 import { useColors } from "@/hooks/useColors";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -90,12 +90,25 @@ function DealCard({ item }: { item: DealItem }) {
       ]}
     >
       {item.image ? (
-        <Image source={item.image} style={[styles.dealImage, { borderTopLeftRadius: colors.radius, borderTopRightRadius: colors.radius }]} />
+        <Image
+          source={{ uri: item.image }}
+          style={[
+            styles.dealImage,
+            {
+              borderTopLeftRadius: colors.radius,
+              borderTopRightRadius: colors.radius,
+            },
+          ]}
+        />
       ) : (
         <View
           style={[
             styles.dealImagePlaceholder,
-            { backgroundColor: colors.muted, borderTopLeftRadius: colors.radius, borderTopRightRadius: colors.radius },
+            {
+              backgroundColor: colors.muted,
+              borderTopLeftRadius: colors.radius,
+              borderTopRightRadius: colors.radius,
+            },
           ]}
         >
           <Feather name="coffee" size={28} color={colors.mutedForeground} />
@@ -123,11 +136,11 @@ function DealCard({ item }: { item: DealItem }) {
         </Text>
         <View style={styles.priceRow}>
           <Text style={[styles.dealPrice, { color: colors.primary }]}>
-            ${item.price.toFixed(2)}
+            GH₵{item.price.toFixed(2)}
           </Text>
           {item.originalPrice && (
             <Text style={[styles.originalPrice, { color: colors.mutedForeground }]}>
-              ${item.originalPrice.toFixed(2)}
+              GH₵{item.originalPrice.toFixed(2)}
             </Text>
           )}
         </View>
