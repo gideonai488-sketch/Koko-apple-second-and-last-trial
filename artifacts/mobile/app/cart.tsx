@@ -25,23 +25,57 @@ function generateRef() {
   return `KS_${Date.now()}_${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
-function Field({
+function SectionCard({ children, style }: { children: React.ReactNode; style?: any }) {
+  const colors = useColors();
+  return (
+    <View
+      style={[
+        sectionStyles.card,
+        {
+          backgroundColor: colors.card,
+          borderRadius: colors.radius,
+          borderColor: colors.border,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+function SectionTitle({ label, icon }: { label: string; icon: string }) {
+  const colors = useColors();
+  return (
+    <View style={sectionStyles.titleRow}>
+      <Feather name={icon as any} size={16} color={colors.primary} />
+      <Text style={[sectionStyles.title, { color: colors.foreground }]}>{label}</Text>
+    </View>
+  );
+}
+
+function InputField({
   label,
   icon,
   error,
+  optional,
   children,
 }: {
   label: string;
   icon: string;
   error?: string;
+  optional?: boolean;
   children: React.ReactNode;
 }) {
   const colors = useColors();
   return (
     <View style={fieldStyles.wrap}>
       <View style={fieldStyles.labelRow}>
-        <Feather name={icon as any} size={14} color={colors.primary} />
+        <Feather name={icon as any} size={13} color={colors.mutedForeground} />
         <Text style={[fieldStyles.label, { color: colors.foreground }]}>{label}</Text>
+        {optional && (
+          <Text style={[fieldStyles.optional, { color: colors.mutedForeground }]}>(optional)</Text>
+        )}
       </View>
       {children}
       {error ? (
@@ -51,10 +85,17 @@ function Field({
   );
 }
 
+const sectionStyles = StyleSheet.create({
+  card: { padding: 16, borderWidth: 1, gap: 14 },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 },
+  title: { fontSize: 15, fontWeight: "700" as const, fontFamily: "Inter_700Bold" },
+});
+
 const fieldStyles = StyleSheet.create({
-  wrap: { gap: 6 },
-  labelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  label: { fontSize: 14, fontWeight: "600" as const, fontFamily: "Inter_600SemiBold" },
+  wrap: { gap: 7 },
+  labelRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  label: { fontSize: 13, fontWeight: "600" as const, fontFamily: "Inter_600SemiBold" },
+  optional: { fontSize: 12, fontFamily: "Inter_400Regular" },
   error: { fontSize: 12, fontFamily: "Inter_400Regular" },
 });
 
@@ -66,12 +107,20 @@ export default function CartScreen() {
   const { placeOrder } = useOrders();
 
   const [placing, setPlacing] = useState(false);
+  const [paystackVisible, setPaystackVisible] = useState(false);
+  const [payRef, setPayRef] = useState("");
+
+  // Customer details
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+
+  // Delivery address
+  const [street, setStreet] = useState("");
+  const [area, setArea] = useState("");
+  const [deliveryNote, setDeliveryNote] = useState("");
+
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [paystackVisible, setPaystackVisible] = useState(false);
-  const [payRef, setPayRef] = useState("");
 
   const deliveryFee = items.length > 0 ? 1.99 : 0;
   const serviceFee = items.length > 0 ? 0.99 : 0;
@@ -82,12 +131,13 @@ export default function CartScreen() {
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!name.trim() || name.trim().length < 2)
-      errs.name = "Please enter your full name";
-    if (!phone.trim() || phone.trim().length < 9)
-      errs.phone = "Please enter a valid phone number";
+    if (!name.trim() || name.trim().length < 2) errs.name = "Enter your full name";
+    if (!phone.trim() || phone.replace(/\D/g, "").length < 9)
+      errs.phone = "Enter a valid phone number";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
-      errs.email = "Please enter a valid email for your receipt";
+      errs.email = "Enter a valid email address";
+    if (!street.trim() || street.trim().length < 5)
+      errs.street = "Enter your delivery street address";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -104,25 +154,19 @@ export default function CartScreen() {
     setPaystackVisible(false);
     setPlacing(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
     try {
       await placeOrder(
         items[0].restaurantId,
         items[0].restaurantName,
-        items.map((i) => ({
-          id: i.id,
-          name: i.name,
-          price: i.price,
-          quantity: i.quantity,
-        })),
+        items.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
         grandTotal
       );
       clearCart();
       router.replace("/(tabs)/orders" as any);
     } catch {
       Alert.alert(
-        "Order saved",
-        `Payment successful (ref: ${reference.slice(-8)}). Your order is being prepared!`
+        "Payment successful!",
+        `Your order is confirmed (ref: ${reference.slice(-8)}). We'll start preparing it now.`
       );
       clearCart();
       router.replace("/(tabs)/orders" as any);
@@ -143,6 +187,11 @@ export default function CartScreen() {
       color: colors.foreground,
       borderRadius: colors.radius / 1.5,
     },
+  ];
+
+  const inputWithError = (field: string) => [
+    ...inputStyle,
+    errors[field] ? { borderWidth: 1, borderColor: colors.destructive } : {},
   ];
 
   return (
@@ -207,7 +256,7 @@ export default function CartScreen() {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={[
                 styles.scrollContent,
-                { paddingBottom: bottomPad + 240 },
+                { paddingBottom: bottomPad + 120 },
               ]}
             >
               {items[0] && (
@@ -237,14 +286,14 @@ export default function CartScreen() {
                       {item.name}
                     </Text>
                     <Text style={[styles.itemPrice, { color: colors.mutedForeground }]}>
-                      GH₵{(item.price * item.quantity).toFixed(2)}
+                      GH₵{item.price.toFixed(2)} × {item.quantity} ={" "}
+                      <Text style={{ color: colors.foreground, fontFamily: "Inter_600SemiBold" }}>
+                        GH₵{(item.price * item.quantity).toFixed(2)}
+                      </Text>
                     </Text>
                   </View>
                   <View style={styles.itemActions}>
-                    <TouchableOpacity
-                      onPress={() => removeItem(item.id)}
-                      style={styles.removeBtn}
-                    >
+                    <TouchableOpacity onPress={() => removeItem(item.id)} style={styles.removeBtn}>
                       <Feather name="trash-2" size={15} color={colors.destructive} />
                     </TouchableOpacity>
                     <View
@@ -274,19 +323,8 @@ export default function CartScreen() {
               ))}
 
               {/* Order Summary */}
-              <View
-                style={[
-                  styles.summaryCard,
-                  {
-                    backgroundColor: colors.card,
-                    borderRadius: colors.radius,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Text style={[styles.summaryTitle, { color: colors.foreground }]}>
-                  Order Summary
-                </Text>
+              <SectionCard>
+                <SectionTitle label="Order Summary" icon="file-text" />
                 <View style={styles.summaryRow}>
                   <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>
                     Subtotal ({itemCount} items)
@@ -314,90 +352,108 @@ export default function CartScreen() {
                 <View style={[styles.divider, { backgroundColor: colors.border }]} />
                 <View style={styles.summaryRow}>
                   <Text style={[styles.totalLabel, { color: colors.foreground }]}>Total</Text>
-                  <Text style={[styles.totalValue, { color: colors.foreground }]}>
+                  <Text style={[styles.totalValue, { color: colors.primary }]}>
                     GH₵{grandTotal.toFixed(2)}
                   </Text>
                 </View>
-              </View>
+              </SectionCard>
 
               {/* Delivery Address */}
-              <View
-                style={[
-                  styles.addressCard,
-                  {
-                    backgroundColor: colors.card,
-                    borderRadius: colors.radius,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Feather name="map-pin" size={18} color={colors.primary} />
-                <View style={styles.addressInfo}>
-                  <Text style={[styles.addressTitle, { color: colors.foreground }]}>
-                    Deliver to
-                  </Text>
-                  <Text style={[styles.addressText, { color: colors.mutedForeground }]}>
-                    Current Location
-                  </Text>
-                </View>
-                <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
-              </View>
+              <SectionCard>
+                <SectionTitle label="Delivery Address" icon="map-pin" />
+
+                <InputField label="Street Address" icon="home" error={errors.street}>
+                  <TextInput
+                    style={inputWithError("street")}
+                    placeholder="e.g. 12 Accra New Town Road"
+                    placeholderTextColor={colors.mutedForeground}
+                    value={street}
+                    onChangeText={(t) => {
+                      setStreet(t);
+                      setErrors((e) => ({ ...e, street: "" }));
+                    }}
+                    autoCapitalize="words"
+                  />
+                </InputField>
+
+                <InputField label="Area / Landmark" icon="map" optional>
+                  <TextInput
+                    style={inputStyle}
+                    placeholder="e.g. Near Shoprite, Osu"
+                    placeholderTextColor={colors.mutedForeground}
+                    value={area}
+                    onChangeText={setArea}
+                    autoCapitalize="words"
+                  />
+                </InputField>
+
+                <InputField label="Delivery Note" icon="message-circle" optional>
+                  <TextInput
+                    style={[...inputStyle, styles.multiline]}
+                    placeholder="e.g. Call when you arrive, Gate is blue"
+                    placeholderTextColor={colors.mutedForeground}
+                    value={deliveryNote}
+                    onChangeText={setDeliveryNote}
+                    multiline
+                    numberOfLines={2}
+                    autoCapitalize="sentences"
+                  />
+                </InputField>
+              </SectionCard>
 
               {/* Customer Details */}
-              <View
-                style={[
-                  styles.detailsCard,
-                  {
-                    backgroundColor: colors.card,
-                    borderRadius: colors.radius,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Text style={[styles.detailsTitle, { color: colors.foreground }]}>
-                  Your Details
-                </Text>
+              <SectionCard>
+                <SectionTitle label="Your Details" icon="user" />
                 <Text style={[styles.detailsSub, { color: colors.mutedForeground }]}>
-                  Required for your order and receipt
+                  Used for your order and receipt
                 </Text>
 
-                <Field label="Full Name" icon="user" error={errors.name}>
+                <InputField label="Full Name" icon="user" error={errors.name}>
                   <TextInput
-                    style={[inputStyle, errors.name ? { borderWidth: 1, borderColor: colors.destructive } : {}]}
+                    style={inputWithError("name")}
                     placeholder="Kwame Asante"
                     placeholderTextColor={colors.mutedForeground}
                     value={name}
-                    onChangeText={(t) => { setName(t); setErrors((e) => ({ ...e, name: "" })); }}
+                    onChangeText={(t) => {
+                      setName(t);
+                      setErrors((e) => ({ ...e, name: "" }));
+                    }}
                     autoCapitalize="words"
                   />
-                </Field>
+                </InputField>
 
-                <Field label="Phone Number" icon="phone" error={errors.phone}>
+                <InputField label="Phone Number" icon="phone" error={errors.phone}>
                   <TextInput
-                    style={[inputStyle, errors.phone ? { borderWidth: 1, borderColor: colors.destructive } : {}]}
+                    style={inputWithError("phone")}
                     placeholder="+233 20 123 4567"
                     placeholderTextColor={colors.mutedForeground}
                     value={phone}
-                    onChangeText={(t) => { setPhone(t); setErrors((e) => ({ ...e, phone: "" })); }}
+                    onChangeText={(t) => {
+                      setPhone(t);
+                      setErrors((e) => ({ ...e, phone: "" }));
+                    }}
                     keyboardType="phone-pad"
                   />
-                </Field>
+                </InputField>
 
-                <Field label="Email for Receipt" icon="mail" error={errors.email}>
+                <InputField label="Email for Receipt" icon="mail" error={errors.email}>
                   <TextInput
-                    style={[inputStyle, errors.email ? { borderWidth: 1, borderColor: colors.destructive } : {}]}
+                    style={inputWithError("email")}
                     placeholder="you@example.com"
                     placeholderTextColor={colors.mutedForeground}
                     value={email}
-                    onChangeText={(t) => { setEmail(t); setErrors((e) => ({ ...e, email: "" })); }}
+                    onChangeText={(t) => {
+                      setEmail(t);
+                      setErrors((e) => ({ ...e, email: "" }));
+                    }}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
                   />
-                </Field>
-              </View>
+                </InputField>
+              </SectionCard>
 
-              {/* Security Badge */}
+              {/* Security */}
               <View style={styles.securityBadge}>
                 <Feather name="lock" size={13} color={colors.mutedForeground} />
                 <Text style={[styles.securityText, { color: colors.mutedForeground }]}>
@@ -430,7 +486,7 @@ export default function CartScreen() {
               >
                 {placing ? (
                   <Text style={[styles.checkoutText, { color: colors.primaryForeground }]}>
-                    Saving Order...
+                    Saving Order…
                   </Text>
                 ) : (
                   <>
@@ -445,7 +501,6 @@ export default function CartScreen() {
           </>
         )}
 
-        {/* Paystack Payment Modal */}
         <PaystackPayment
           visible={paystackVisible}
           amount={grandTotal}
@@ -472,12 +527,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   backBtn: { padding: 4 },
-  title: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: "700" as const,
-    fontFamily: "Inter_700Bold",
-  },
+  title: { flex: 1, fontSize: 20, fontWeight: "700" as const, fontFamily: "Inter_700Bold" },
   clearText: { fontSize: 14, fontFamily: "Inter_500Medium" },
   emptyState: {
     flex: 1,
@@ -501,7 +551,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     textTransform: "uppercase",
     letterSpacing: 0.8,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   itemRow: {
     flexDirection: "row",
@@ -512,7 +562,7 @@ const styles = StyleSheet.create({
   },
   itemInfo: { flex: 1, gap: 4 },
   itemName: { fontSize: 15, fontWeight: "500" as const, fontFamily: "Inter_500Medium" },
-  itemPrice: { fontSize: 14, fontFamily: "Inter_400Regular" },
+  itemPrice: { fontSize: 13, fontFamily: "Inter_400Regular" },
   itemActions: { flexDirection: "row", alignItems: "center", gap: 10 },
   removeBtn: { padding: 6 },
   qtyControl: { flexDirection: "row", alignItems: "center", height: 34 },
@@ -524,38 +574,23 @@ const styles = StyleSheet.create({
     minWidth: 20,
     textAlign: "center",
   },
-  summaryCard: { padding: 16, borderWidth: 1, gap: 10 },
-  summaryTitle: {
-    fontSize: 16,
-    fontWeight: "600" as const,
-    fontFamily: "Inter_600SemiBold",
-    marginBottom: 2,
-  },
   summaryRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   summaryLabel: { fontSize: 14, fontFamily: "Inter_400Regular" },
   summaryValue: { fontSize: 14, fontFamily: "Inter_500Medium" },
-  divider: { height: 1, marginVertical: 4 },
+  divider: { height: 1, marginVertical: 2 },
   totalLabel: { fontSize: 16, fontWeight: "700" as const, fontFamily: "Inter_700Bold" },
   totalValue: { fontSize: 18, fontWeight: "700" as const, fontFamily: "Inter_700Bold" },
-  addressCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    borderWidth: 1,
-    gap: 12,
-  },
-  addressInfo: { flex: 1 },
-  addressTitle: { fontSize: 14, fontWeight: "600" as const, fontFamily: "Inter_600SemiBold" },
-  addressText: { fontSize: 13, fontFamily: "Inter_400Regular" },
-  detailsCard: { padding: 16, borderWidth: 1, gap: 14 },
-  detailsTitle: { fontSize: 15, fontWeight: "700" as const, fontFamily: "Inter_700Bold" },
   detailsSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: -8 },
   input: {
     paddingHorizontal: 12,
     paddingVertical: 11,
     fontSize: 14,
     fontFamily: "Inter_400Regular",
-    borderRadius: 8,
+  },
+  multiline: {
+    minHeight: 60,
+    textAlignVertical: "top",
+    paddingTop: 10,
   },
   securityBadge: {
     flexDirection: "row",
