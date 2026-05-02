@@ -1,0 +1,32 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "90x12UBEN_NZcw7nXSmdN"
+uri = "file://artifacts/mobile/assets/images/icon.png"
+type = "image"
+title = "food app icon"
+
+[[generated]]
+id = "CXCcG6sKPmlOpuo7bRWaV"
+uri = "file://artifacts/mobile/assets/images/restaurant_italian.png"
+type = "image"
+title = "italian restaurant cover"
+
+[[generated]]
+id = "n9oAnivLLnW3m6BhXiyuI"
+uri = "file://artifacts/mobile/assets/images/restaurant_burger.png"
+type = "image"
+title = "burger restaurant cover"
+
+[[generated]]
+id = "1PqOCABSg9mvl-ZqMghqN"
+uri = "file://artifacts/mobile/assets/images/restaurant_sushi.png"
+type = "image"
+title = "sushi restaurant cover"
+
+[[generated]]
+id = "y_XvOyYPveQwlunapjKi4"
+uri = "file://artifacts/mobile/assets/images/restaurant_mexican.png"
+type = "image"
+title = "mexican restaurant cover"
