@@ -1,19 +1,23 @@
 import { Feather } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   FlatList,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useCart } from "@/context/CartContext";
 import { Order, useOrders } from "@/context/OrdersContext";
 import { useColors } from "@/hooks/useColors";
 
 const STATUS_LABELS: Record<Order["status"], string> = {
-  preparing: "Preparing your order",
+  preparing: "Preparing",
   on_the_way: "On the way",
   delivered: "Delivered",
 };
@@ -30,10 +34,92 @@ const STATUS_COLORS: Record<Order["status"], string> = {
   delivered: "#22C55E",
 };
 
+function CartPreviewCard() {
+  const colors = useColors();
+  const router = useRouter();
+  const { items, total, itemCount } = useCart();
+
+  if (items.length === 0) return null;
+
+  const deliveryFee = 1.99;
+  const serviceFee = 0.99;
+  const grandTotal = total + deliveryFee + serviceFee;
+
+  return (
+    <View
+      style={[
+        styles.cartCard,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.primary,
+          borderRadius: colors.radius,
+        },
+      ]}
+    >
+      <View style={styles.cartHeader}>
+        <View style={styles.cartTitleRow}>
+          <View style={[styles.pendingDot, { backgroundColor: colors.primary }]} />
+          <Text style={[styles.cartTitle, { color: colors.foreground }]}>
+            Cart — {itemCount} item{itemCount !== 1 ? "s" : ""}
+          </Text>
+        </View>
+        <View style={[styles.pendingBadge, { backgroundColor: colors.primary + "18" }]}>
+          <Text style={[styles.pendingText, { color: colors.primary }]}>Not yet placed</Text>
+        </View>
+      </View>
+
+      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+      <View style={styles.itemsList}>
+        {items.map((item) => (
+          <View key={item.id} style={styles.itemRow}>
+            <Text style={[styles.itemQty, { color: colors.mutedForeground }]}>
+              {item.quantity}×
+            </Text>
+            <Text
+              style={[styles.itemName, { color: colors.foreground }]}
+              numberOfLines={1}
+            >
+              {item.name}
+            </Text>
+            <Text style={[styles.itemPrice, { color: colors.mutedForeground }]}>
+              GH₵{(item.price * item.quantity).toFixed(2)}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+      <View style={styles.cartFooter}>
+        <View>
+          <Text style={[styles.totalLabel, { color: colors.mutedForeground }]}>
+            Total (incl. fees)
+          </Text>
+          <Text style={[styles.totalValue, { color: colors.foreground }]}>
+            GH₵{grandTotal.toFixed(2)}
+          </Text>
+        </View>
+        <Pressable
+          onPress={() => router.push("/cart" as any)}
+          style={[
+            styles.checkoutBtn,
+            { backgroundColor: colors.primary, borderRadius: colors.radius / 1.5 },
+          ]}
+        >
+          <Feather name="credit-card" size={15} color="#fff" />
+          <Text style={styles.checkoutBtnText}>Checkout</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 function OrderCard({ order }: { order: Order }) {
   const colors = useColors();
   const statusColor = STATUS_COLORS[order.status];
   const placedDate = new Date(order.placedAt);
+  const estDate = new Date(order.estimatedDelivery);
 
   return (
     <View
@@ -52,7 +138,7 @@ function OrderCard({ order }: { order: Order }) {
             {order.restaurantName}
           </Text>
           <Text style={[styles.orderId, { color: colors.mutedForeground }]}>
-            #{order.id.slice(-6).toUpperCase()}
+            #{String(order.id).slice(-6).toUpperCase()}
           </Text>
         </View>
         <View
@@ -61,11 +147,7 @@ function OrderCard({ order }: { order: Order }) {
             { backgroundColor: statusColor + "20", borderRadius: 100 },
           ]}
         >
-          <Feather
-            name={STATUS_ICONS[order.status] as any}
-            size={12}
-            color={statusColor}
-          />
+          <Feather name={STATUS_ICONS[order.status] as any} size={12} color={statusColor} />
           <Text style={[styles.statusText, { color: statusColor }]}>
             {STATUS_LABELS[order.status]}
           </Text>
@@ -78,7 +160,7 @@ function OrderCard({ order }: { order: Order }) {
         {order.items.map((item, idx) => (
           <View key={idx} style={styles.itemRow}>
             <Text style={[styles.itemQty, { color: colors.mutedForeground }]}>
-              {item.quantity}x
+              {item.quantity}×
             </Text>
             <Text
               style={[styles.itemName, { color: colors.foreground }]}
@@ -87,7 +169,7 @@ function OrderCard({ order }: { order: Order }) {
               {item.name}
             </Text>
             <Text style={[styles.itemPrice, { color: colors.mutedForeground }]}>
-              ${(item.price * item.quantity).toFixed(2)}
+              GH₵{(item.price * item.quantity).toFixed(2)}
             </Text>
           </View>
         ))}
@@ -96,16 +178,23 @@ function OrderCard({ order }: { order: Order }) {
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
       <View style={styles.footer}>
-        <Text style={[styles.date, { color: colors.mutedForeground }]}>
-          {placedDate.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </Text>
+        <View style={styles.footerLeft}>
+          <Text style={[styles.date, { color: colors.mutedForeground }]}>
+            {placedDate.toLocaleDateString("en-GH", {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </Text>
+          {order.status !== "delivered" && (
+            <Text style={[styles.eta, { color: colors.primary }]}>
+              ETA {estDate.toLocaleTimeString("en-GH", { hour: "2-digit", minute: "2-digit" })}
+            </Text>
+          )}
+        </View>
         <Text style={[styles.total, { color: colors.foreground }]}>
-          Total: ${order.total.toFixed(2)}
+          GH₵{order.total.toFixed(2)}
         </Text>
       </View>
     </View>
@@ -116,9 +205,11 @@ export default function OrdersScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { orders } = useOrders();
+  const { items: cartItems } = useCart();
 
   const topPad = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 + 84 : 100;
+  const hasContent = cartItems.length > 0 || orders.length > 0;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -128,19 +219,15 @@ export default function OrdersScreen() {
           { paddingTop: topPad + 16, backgroundColor: colors.background },
         ]}
       >
-        <Text style={[styles.screenTitle, { color: colors.foreground }]}>
-          Your Orders
-        </Text>
+        <Text style={[styles.screenTitle, { color: colors.foreground }]}>Orders</Text>
       </View>
 
-      {orders.length === 0 ? (
+      {!hasContent ? (
         <View style={styles.emptyState}>
           <Feather name="shopping-bag" size={48} color={colors.mutedForeground} />
-          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-            No orders yet
-          </Text>
+          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No orders yet</Text>
           <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-            Your order history will appear here
+            Add items to your cart and place an order
           </Text>
         </View>
       ) : (
@@ -148,13 +235,14 @@ export default function OrdersScreen() {
           data={orders}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <OrderCard order={item} />}
+          ListHeaderComponent={<CartPreviewCard />}
+          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
           contentContainerStyle={{
             padding: 16,
             gap: 12,
             paddingBottom: bottomPad,
           }}
           showsVerticalScrollIndicator={false}
-          scrollEnabled={!!orders.length}
         />
       )}
     </View>
@@ -162,31 +250,40 @@ export default function OrdersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+  headerBar: { paddingHorizontal: 16, paddingBottom: 16 },
+  screenTitle: { fontSize: 26, fontWeight: "700" as const, fontFamily: "Inter_700Bold" },
+
+  cartCard: { borderWidth: 1.5, marginBottom: 4 },
+  cartHeader: {
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
-  headerBar: {
+  cartTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  pendingDot: { width: 8, height: 8, borderRadius: 4 },
+  cartTitle: { fontSize: 15, fontWeight: "700" as const, fontFamily: "Inter_700Bold" },
+  pendingBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 100 },
+  pendingText: { fontSize: 12, fontWeight: "600" as const, fontFamily: "Inter_600SemiBold" },
+  cartFooter: {
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  totalLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  totalValue: { fontSize: 16, fontWeight: "700" as const, fontFamily: "Inter_700Bold" },
+  checkoutBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingVertical: 10,
   },
-  screenTitle: {
-    fontSize: 26,
-    fontWeight: "700" as const,
-    fontFamily: "Inter_700Bold",
-  },
-  card: {
-    borderWidth: 1,
-    overflow: "hidden",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 6,
-      },
-      android: { elevation: 2 },
-    }),
-  },
+  checkoutBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" as const, fontFamily: "Inter_700Bold" },
+
+  card: { borderWidth: 1 },
   cardHeader: {
     padding: 14,
     flexDirection: "row",
@@ -194,19 +291,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 12,
   },
-  restaurantInfo: {
-    flex: 1,
-  },
-  restaurantName: {
-    fontSize: 16,
-    fontWeight: "600" as const,
-    fontFamily: "Inter_600SemiBold",
-  },
-  orderId: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    marginTop: 2,
-  },
+  restaurantInfo: { flex: 1 },
+  restaurantName: { fontSize: 16, fontWeight: "600" as const, fontFamily: "Inter_600SemiBold" },
+  orderId: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -214,53 +301,24 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     gap: 5,
   },
-  statusText: {
-    fontSize: 12,
-    fontWeight: "500" as const,
-    fontFamily: "Inter_500Medium",
-  },
-  divider: {
-    height: 1,
-    marginHorizontal: 14,
-  },
-  itemsList: {
-    padding: 14,
-    gap: 8,
-  },
-  itemRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  itemQty: {
-    fontSize: 13,
-    fontFamily: "Inter_500Medium",
-    width: 24,
-  },
-  itemName: {
-    flex: 1,
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-  },
-  itemPrice: {
-    fontSize: 13,
-    fontFamily: "Inter_500Medium",
-  },
+  statusText: { fontSize: 12, fontWeight: "500" as const, fontFamily: "Inter_500Medium" },
+  divider: { height: 1, marginHorizontal: 14 },
+  itemsList: { padding: 14, gap: 8 },
+  itemRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  itemQty: { fontSize: 13, fontFamily: "Inter_500Medium", width: 24 },
+  itemName: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular" },
+  itemPrice: { fontSize: 13, fontFamily: "Inter_500Medium" },
   footer: {
     padding: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  date: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-  },
-  total: {
-    fontSize: 15,
-    fontWeight: "600" as const,
-    fontFamily: "Inter_600SemiBold",
-  },
+  footerLeft: { gap: 2 },
+  date: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  eta: { fontSize: 12, fontFamily: "Inter_600SemiBold", fontWeight: "600" as const },
+  total: { fontSize: 15, fontWeight: "600" as const, fontFamily: "Inter_600SemiBold" },
+
   emptyState: {
     flex: 1,
     alignItems: "center",
@@ -268,13 +326,11 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingBottom: 80,
   },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "600" as const,
-    fontFamily: "Inter_600SemiBold",
-  },
+  emptyTitle: { fontSize: 20, fontWeight: "600" as const, fontFamily: "Inter_600SemiBold" },
   emptyText: {
     fontSize: 14,
     fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    paddingHorizontal: 40,
   },
 });
