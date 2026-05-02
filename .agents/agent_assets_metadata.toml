@@ -30,3 +30,33 @@ id = "y_XvOyYPveQwlunapjKi4"
 uri = "file://artifacts/mobile/assets/images/restaurant_mexican.png"
 type = "image"
 title = "mexican restaurant cover"
+
+[[generated]]
+id = "Xeb4dBLnV4wHgqwVc8qQ1"
+uri = "file://artifacts/mobile/assets/images/item_pizza.png"
+type = "image"
+title = "pizza item image"
+
+[[generated]]
+id = "zsh2Nyq30ilNqJCVVTaoD"
+uri = "file://artifacts/mobile/assets/images/item_burger.png"
+type = "image"
+title = "burger item image"
+
+[[generated]]
+id = "nf06kb1dVIMeyrVvPbVoJ"
+uri = "file://artifacts/mobile/assets/images/item_sushi.png"
+type = "image"
+title = "sushi item image"
+
+[[generated]]
+id = "pB1eu9Q0Lc-aVkC4XMBFK"
+uri = "file://artifacts/mobile/assets/images/item_taco.png"
+type = "image"
+title = "taco item image"
+
+[[generated]]
+id = "RVRLWuSL02-oR7tWtnk-u"
+uri = "file://artifacts/mobile/assets/images/item_dessert.png"
+type = "image"
+title = "dessert item image"

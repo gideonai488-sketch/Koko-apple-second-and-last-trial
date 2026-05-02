@@ -3,8 +3,11 @@ export interface MenuItem {
   name: string;
   description: string;
   price: number;
+  originalPrice?: number;
   category: string;
   popular?: boolean;
+  trending?: boolean;
+  image?: any;
 }
 
 export interface Restaurant {
@@ -20,6 +23,9 @@ export interface Restaurant {
   categories: string[];
   menu: MenuItem[];
   promoted?: boolean;
+  featured?: boolean;
+  trending?: boolean;
+  tagline?: string;
 }
 
 const restaurants: Restaurant[] = [
@@ -34,6 +40,9 @@ const restaurants: Restaurant[] = [
     minOrder: 12,
     image: require("../assets/images/restaurant_italian.png"),
     promoted: true,
+    featured: true,
+    trending: true,
+    tagline: "Authentic wood-fired pizza since 1987",
     categories: ["Pizza", "Pasta", "Salads", "Desserts"],
     menu: [
       {
@@ -41,8 +50,11 @@ const restaurants: Restaurant[] = [
         name: "Margherita Pizza",
         description: "San Marzano tomatoes, fresh mozzarella, fragrant basil, extra-virgin olive oil",
         price: 16.99,
+        originalPrice: 21.99,
         category: "Pizza",
         popular: true,
+        trending: true,
+        image: require("../assets/images/item_pizza.png"),
       },
       {
         id: "i2",
@@ -51,12 +63,14 @@ const restaurants: Restaurant[] = [
         price: 18.99,
         category: "Pizza",
         popular: true,
+        image: require("../assets/images/item_pizza.png"),
       },
       {
         id: "i3",
         name: "Truffle Arancini",
         description: "Crispy risotto balls stuffed with truffle, mozzarella, and parmesan",
         price: 12.99,
+        originalPrice: 15.99,
         category: "Starters",
         popular: true,
       },
@@ -86,8 +100,11 @@ const restaurants: Restaurant[] = [
         name: "Tiramisu",
         description: "Classic mascarpone cream, espresso-soaked ladyfingers, cocoa",
         price: 9.99,
+        originalPrice: 13.99,
         category: "Desserts",
         popular: true,
+        trending: true,
+        image: require("../assets/images/item_dessert.png"),
       },
     ],
   },
@@ -101,6 +118,9 @@ const restaurants: Restaurant[] = [
     deliveryFee: 0,
     minOrder: 10,
     image: require("../assets/images/restaurant_burger.png"),
+    featured: true,
+    trending: true,
+    tagline: "Smash burgers done the right way",
     categories: ["Burgers", "Sides", "Drinks", "Desserts"],
     menu: [
       {
@@ -108,8 +128,11 @@ const restaurants: Restaurant[] = [
         name: "Classic Smash Burger",
         description: "Double smash patty, American cheese, pickles, special sauce, brioche bun",
         price: 13.99,
+        originalPrice: 17.99,
         category: "Burgers",
         popular: true,
+        trending: true,
+        image: require("../assets/images/item_burger.png"),
       },
       {
         id: "s2",
@@ -118,14 +141,17 @@ const restaurants: Restaurant[] = [
         price: 16.99,
         category: "Burgers",
         popular: true,
+        image: require("../assets/images/item_burger.png"),
       },
       {
         id: "s3",
         name: "Crispy Chicken Sandwich",
         description: "Fried chicken thigh, coleslaw, pickles, honey mustard, brioche",
         price: 14.99,
+        originalPrice: 18.99,
         category: "Burgers",
         popular: true,
+        image: require("../assets/images/item_burger.png"),
       },
       {
         id: "s4",
@@ -154,6 +180,7 @@ const restaurants: Restaurant[] = [
         description: "Warm fudge brownie, vanilla ice cream, chocolate drizzle",
         price: 7.99,
         category: "Desserts",
+        image: require("../assets/images/item_dessert.png"),
       },
     ],
   },
@@ -167,6 +194,8 @@ const restaurants: Restaurant[] = [
     deliveryFee: 2.99,
     minOrder: 20,
     image: require("../assets/images/restaurant_sushi.png"),
+    featured: true,
+    tagline: "Omakase quality, delivered to your door",
     categories: ["Nigiri", "Rolls", "Starters", "Ramen"],
     menu: [
       {
@@ -176,6 +205,7 @@ const restaurants: Restaurant[] = [
         price: 8.99,
         category: "Nigiri",
         popular: true,
+        image: require("../assets/images/item_sushi.png"),
       },
       {
         id: "j2",
@@ -183,14 +213,18 @@ const restaurants: Restaurant[] = [
         description: "Bluefin tuna over seasoned shari rice",
         price: 9.99,
         category: "Nigiri",
+        image: require("../assets/images/item_sushi.png"),
       },
       {
         id: "j3",
         name: "Dragon Roll",
         description: "Shrimp tempura, cucumber, avocado, unagi sauce, sesame",
         price: 16.99,
+        originalPrice: 20.99,
         category: "Rolls",
         popular: true,
+        trending: true,
+        image: require("../assets/images/item_sushi.png"),
       },
       {
         id: "j4",
@@ -199,6 +233,7 @@ const restaurants: Restaurant[] = [
         price: 14.99,
         category: "Rolls",
         popular: true,
+        image: require("../assets/images/item_sushi.png"),
       },
       {
         id: "j5",
@@ -219,8 +254,10 @@ const restaurants: Restaurant[] = [
         name: "Tonkotsu Ramen",
         description: "Rich pork bone broth, chashu pork, soft egg, nori, mushrooms",
         price: 17.99,
+        originalPrice: 22.99,
         category: "Ramen",
         popular: true,
+        trending: true,
       },
     ],
   },
@@ -234,6 +271,8 @@ const restaurants: Restaurant[] = [
     deliveryFee: 1.49,
     minOrder: 8,
     image: require("../assets/images/restaurant_mexican.png"),
+    trending: true,
+    tagline: "Street-style tacos with bold, authentic flavor",
     categories: ["Tacos", "Burritos", "Sides", "Drinks"],
     menu: [
       {
@@ -241,8 +280,11 @@ const restaurants: Restaurant[] = [
         name: "Carne Asada Tacos (3pc)",
         description: "Grilled skirt steak, onion, cilantro, salsa verde, corn tortilla",
         price: 13.99,
+        originalPrice: 17.99,
         category: "Tacos",
         popular: true,
+        trending: true,
+        image: require("../assets/images/item_taco.png"),
       },
       {
         id: "m2",
@@ -251,6 +293,7 @@ const restaurants: Restaurant[] = [
         price: 12.99,
         category: "Tacos",
         popular: true,
+        image: require("../assets/images/item_taco.png"),
       },
       {
         id: "m3",
@@ -258,12 +301,14 @@ const restaurants: Restaurant[] = [
         description: "Beer-battered tilapia, chipotle slaw, avocado crema, flour tortilla",
         price: 13.99,
         category: "Tacos",
+        image: require("../assets/images/item_taco.png"),
       },
       {
         id: "m4",
         name: "Carne Asada Burrito",
         description: "Grilled steak, rice, black beans, pico, guacamole, sour cream",
         price: 14.99,
+        originalPrice: 18.99,
         category: "Burritos",
         popular: true,
       },
@@ -295,4 +340,33 @@ const restaurants: Restaurant[] = [
 
 export default restaurants;
 
-export const categories = ["All", "Italian", "American", "Japanese", "Mexican"];
+export const categories = [
+  { id: "all", label: "All", icon: "grid" },
+  { id: "Italian", label: "Pizza", icon: "circle" },
+  { id: "American", label: "Burgers", icon: "zap" },
+  { id: "Japanese", label: "Sushi", icon: "star" },
+  { id: "Mexican", label: "Tacos", icon: "sun" },
+  { id: "desserts", label: "Desserts", icon: "heart" },
+];
+
+export function getAllItems() {
+  return restaurants.flatMap((r) =>
+    r.menu.map((item) => ({ ...item, restaurantId: r.id, restaurantName: r.name }))
+  );
+}
+
+export function getTrendingItems() {
+  return getAllItems().filter((i) => i.trending);
+}
+
+export function getDealsItems() {
+  return getAllItems().filter((i) => i.originalPrice);
+}
+
+export function getFeaturedRestaurants() {
+  return restaurants.filter((r) => r.featured);
+}
+
+export function getTrendingRestaurants() {
+  return restaurants.filter((r) => r.trending);
+}
