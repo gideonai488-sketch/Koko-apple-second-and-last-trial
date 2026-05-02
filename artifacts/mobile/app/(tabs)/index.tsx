@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -13,17 +14,17 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FlashDeals } from "@/components/FlashDeals";
-import { HeroCarousel } from "@/components/HeroCarousel";
-import { PopularGrid } from "@/components/PopularGrid";
-import { TrendingRow } from "@/components/TrendingRow";
+import { MenuSection } from "@/components/MenuSection";
+import { PromoBanner } from "@/components/PromoBanner";
 import { useCart } from "@/context/CartContext";
-import restaurants, {
-  categories,
-  getDealsItems,
-  getFeaturedRestaurants,
-  getTrendingItems,
-  getTrendingRestaurants,
-} from "@/data/restaurants";
+import {
+  getDealItems,
+  getItemsByCategory,
+  menuCategories,
+  menuItems,
+  promoSlides,
+  restaurant,
+} from "@/data/menu";
 import { useColors } from "@/hooks/useColors";
 
 export default function HomeScreen() {
@@ -31,30 +32,34 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { itemCount } = useCart();
+
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
 
   const topPad = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 + 84 : 100;
 
-  const featuredRestaurants = getFeaturedRestaurants();
-  const trendingRestaurants = getTrendingRestaurants();
-  const dealItems = getDealsItems();
-  const trendingItems = getTrendingItems();
-
-  const filteredRestaurants =
-    selectedCategory === "all"
-      ? restaurants
-      : restaurants.filter((r) => r.cuisine === selectedCategory);
+  const dealItems = getDealItems().map((i) => ({
+    ...i,
+    restaurantId: "1",
+    restaurantName: restaurant.name,
+  }));
 
   const isSearching = searchQuery.length > 0;
   const searchResults = isSearching
-    ? restaurants.filter(
-        (r) =>
-          r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          r.cuisine.toLowerCase().includes(searchQuery.toLowerCase())
+    ? menuItems.filter(
+        (i) =>
+          i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          i.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          i.category.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : [];
+
+  const categoryItems = getItemsByCategory(selectedCategory).map((i) => ({
+    ...i,
+    restaurantId: "1",
+    restaurantName: restaurant.name,
+  }));
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -63,327 +68,192 @@ export default function HomeScreen() {
         contentContainerStyle={{ paddingBottom: bottomPad }}
         stickyHeaderIndices={[0]}
       >
-        {/* Sticky Top Bar */}
+        {/* Sticky Header */}
         <View
           style={[
-            styles.topBar,
+            styles.header,
             {
               paddingTop: topPad + 10,
               backgroundColor: colors.background,
-              borderBottomColor: isSearching ? colors.border : "transparent",
+              borderBottomColor: colors.border,
             },
           ]}
         >
-          <View style={styles.locationRow}>
-            <Feather name="map-pin" size={14} color={colors.primary} />
-            <Text style={[styles.locationText, { color: colors.foreground }]}>
-              Current Location
+          <View style={styles.headerLeft}>
+            <Text style={[styles.restaurantName, { color: colors.foreground }]}>
+              {restaurant.name}
             </Text>
-            <Feather name="chevron-down" size={14} color={colors.mutedForeground} />
+            <View style={styles.headerMeta}>
+              <Feather name="clock" size={12} color={colors.mutedForeground} />
+              <Text style={[styles.headerMetaText, { color: colors.mutedForeground }]}>
+                {restaurant.deliveryTime} min
+              </Text>
+              <View style={[styles.dot, { backgroundColor: colors.mutedForeground }]} />
+              <Feather name="star" size={12} color={colors.warning} />
+              <Text style={[styles.headerMetaText, { color: colors.mutedForeground }]}>
+                {restaurant.rating}
+              </Text>
+            </View>
           </View>
-          <View style={styles.topBarActions}>
-            <Pressable
-              onPress={() => router.push("/cart" as any)}
-              style={[
-                styles.cartIconBtn,
-                { backgroundColor: colors.primary, borderRadius: 12 },
-              ]}
-            >
-              <Feather name="shopping-bag" size={18} color="#fff" />
-              {itemCount > 0 && (
-                <View
-                  style={[
-                    styles.cartBadge,
-                    { backgroundColor: colors.card },
-                  ]}
-                >
-                  <Text style={[styles.cartBadgeText, { color: colors.primary }]}>
-                    {itemCount > 9 ? "9+" : itemCount}
-                  </Text>
-                </View>
-              )}
-            </Pressable>
-          </View>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push("/cart" as any);
+            }}
+            style={[
+              styles.cartBtn,
+              { backgroundColor: colors.primary, borderRadius: 12 },
+            ]}
+          >
+            <Feather name="shopping-bag" size={18} color="#fff" />
+            {itemCount > 0 && (
+              <View style={[styles.cartBadge, { backgroundColor: colors.card }]}>
+                <Text style={[styles.cartBadgeText, { color: colors.primary }]}>
+                  {itemCount > 9 ? "9+" : itemCount}
+                </Text>
+              </View>
+            )}
+          </Pressable>
         </View>
 
         {/* Search Bar */}
-        {!isSearching && (
-          <View style={styles.searchWrapper}>
-            <View
-              style={[
-                styles.searchBar,
-                {
-                  backgroundColor: colors.card,
-                  borderRadius: colors.radius,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <Feather name="search" size={16} color={colors.mutedForeground} />
-              <TextInput
-                style={[styles.searchInput, { color: colors.foreground }]}
-                placeholder="Search restaurants or dishes..."
-                placeholderTextColor={colors.mutedForeground}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-            </View>
-          </View>
-        )}
-
-        {/* Search active state */}
-        {isSearching && (
-          <View style={styles.searchWrapper}>
-            <View
-              style={[
-                styles.searchBar,
-                {
-                  backgroundColor: colors.card,
-                  borderRadius: colors.radius,
-                  borderColor: colors.primary,
-                  borderWidth: 1.5,
-                },
-              ]}
-            >
-              <Feather name="search" size={16} color={colors.primary} />
-              <TextInput
-                style={[styles.searchInput, { color: colors.foreground }]}
-                placeholder="Search restaurants or dishes..."
-                placeholderTextColor={colors.mutedForeground}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoFocus
-              />
+        <View style={styles.searchWrapper}>
+          <View
+            style={[
+              styles.searchBar,
+              {
+                backgroundColor: colors.card,
+                borderRadius: colors.radius,
+                borderColor: isSearching ? colors.primary : colors.border,
+                borderWidth: isSearching ? 1.5 : 1,
+              },
+            ]}
+          >
+            <Feather
+              name="search"
+              size={16}
+              color={isSearching ? colors.primary : colors.mutedForeground}
+            />
+            <TextInput
+              style={[styles.searchInput, { color: colors.foreground }]}
+              placeholder="Search menu..."
+              placeholderTextColor={colors.mutedForeground}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {isSearching && (
               <Pressable onPress={() => setSearchQuery("")}>
-                <Feather name="x" size={16} color={colors.mutedForeground} />
+                <Feather name="x" size={15} color={colors.mutedForeground} />
               </Pressable>
-            </View>
+            )}
           </View>
-        )}
+        </View>
 
         {isSearching ? (
           /* Search Results */
-          <View style={styles.searchResults}>
-            {searchResults.length === 0 ? (
-              <View style={styles.noResults}>
-                <Feather name="search" size={36} color={colors.mutedForeground} />
-                <Text style={[styles.noResultsText, { color: colors.mutedForeground }]}>
-                  No results for "{searchQuery}"
-                </Text>
-              </View>
-            ) : (
-              searchResults.map((r) => (
-                <Pressable
-                  key={r.id}
-                  onPress={() => router.push(`/restaurant/${r.id}` as any)}
-                  style={({ pressed }) => [
-                    styles.searchResultRow,
-                    {
-                      backgroundColor: colors.card,
-                      borderRadius: colors.radius,
-                      borderColor: colors.border,
-                      opacity: pressed ? 0.88 : 1,
-                    },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.searchResultIcon,
-                      { backgroundColor: colors.muted, borderRadius: 10 },
-                    ]}
-                  >
-                    <Feather name="map-pin" size={18} color={colors.primary} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.searchResultName, { color: colors.foreground }]}>
-                      {r.name}
-                    </Text>
-                    <Text
-                      style={[styles.searchResultMeta, { color: colors.mutedForeground }]}
-                    >
-                      {r.cuisine} · {r.deliveryTime} min
-                    </Text>
-                  </View>
-                  <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
-                </Pressable>
-              ))
-            )}
+          <View style={styles.searchSection}>
+            <Text style={[styles.searchResultsLabel, { color: colors.mutedForeground }]}>
+              {searchResults.length} result{searchResults.length !== 1 ? "s" : ""} for "{searchQuery}"
+            </Text>
+            <MenuSection
+              items={searchResults.map((i) => ({
+                ...i,
+                restaurantId: "1",
+                restaurantName: restaurant.name,
+              }))}
+            />
           </View>
         ) : (
           <>
-            {/* Hero Netflix Carousel */}
-            <HeroCarousel restaurants={featuredRestaurants} />
-
-            {/* Category Quick Filters */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoriesRow}
-              style={styles.categoriesScroll}
-            >
-              {categories.map((cat) => {
-                const active = selectedCategory === cat.id;
-                return (
-                  <Pressable
-                    key={cat.id}
-                    onPress={() => setSelectedCategory(cat.id)}
-                    style={[
-                      styles.categoryChip,
-                      {
-                        backgroundColor: active ? colors.primary : colors.card,
-                        borderRadius: 100,
-                        borderColor: active ? colors.primary : colors.border,
-                      },
-                    ]}
-                  >
-                    <Feather
-                      name={cat.icon as any}
-                      size={14}
-                      color={active ? "#fff" : colors.mutedForeground}
-                    />
-                    <Text
-                      style={[
-                        styles.categoryChipText,
-                        { color: active ? "#fff" : colors.foreground },
-                      ]}
-                    >
-                      {cat.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-
             {/* Promo Banner */}
-            <View style={styles.promoBannerWrapper}>
-              <Pressable
-                style={[
-                  styles.promoBanner,
-                  { backgroundColor: colors.primary, borderRadius: colors.radius * 1.2 },
-                ]}
-              >
-                <View>
-                  <Text style={styles.promoTitle}>Free Delivery</Text>
-                  <Text style={styles.promoSubtitle}>
-                    On your first 3 orders · Use code FIRST3
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.promoTag,
-                    { backgroundColor: "rgba(255,255,255,0.25)", borderRadius: 8 },
-                  ]}
-                >
-                  <Text style={styles.promoTagText}>Claim</Text>
-                </View>
-              </Pressable>
+            <PromoBanner slides={promoSlides} />
+
+            {/* Quick Info Strip */}
+            <View
+              style={[
+                styles.infoStrip,
+                { backgroundColor: colors.muted, borderColor: colors.border },
+              ]}
+            >
+              <View style={styles.infoItem}>
+                <Feather name="truck" size={14} color={colors.primary} />
+                <Text style={[styles.infoText, { color: colors.foreground }]}>
+                  ${restaurant.deliveryFee.toFixed(2)} delivery
+                </Text>
+              </View>
+              <View style={[styles.infoDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.infoItem}>
+                <Feather name="clock" size={14} color={colors.primary} />
+                <Text style={[styles.infoText, { color: colors.foreground }]}>
+                  {restaurant.deliveryTime} min
+                </Text>
+              </View>
+              <View style={[styles.infoDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.infoItem}>
+                <Feather name="dollar-sign" size={14} color={colors.primary} />
+                <Text style={[styles.infoText, { color: colors.foreground }]}>
+                  ${restaurant.minOrder} min order
+                </Text>
+              </View>
             </View>
 
             {/* Flash Deals */}
             {dealItems.length > 0 && (
               <View style={styles.section}>
-                <FlashDeals
-                  items={dealItems.map((i) => ({
-                    ...i,
-                    restaurantId: i.restaurantId,
-                    restaurantName: i.restaurantName,
-                  }))}
-                />
+                <FlashDeals items={dealItems} />
               </View>
             )}
 
-            {/* Trending Restaurants - Netflix Row */}
-            {trendingRestaurants.length > 0 && (
-              <View style={styles.section}>
-                <TrendingRow
-                  restaurants={trendingRestaurants}
-                  title="Trending Near You"
-                  icon="trending-up"
-                />
-              </View>
-            )}
-
-            {/* Popular Items Grid */}
-            {trendingItems.length > 0 && (
-              <View style={styles.section}>
-                <PopularGrid
-                  items={trendingItems.map((i) => ({
-                    ...i,
-                    restaurantId: i.restaurantId,
-                    restaurantName: i.restaurantName,
-                  }))}
-                  title="Popular Right Now"
-                />
-              </View>
-            )}
-
-            {/* All / Filtered Restaurants */}
+            {/* Category Tabs */}
             <View style={styles.section}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoriesRow}
+              >
+                {menuCategories.map((cat) => {
+                  const active = selectedCategory === cat;
+                  return (
+                    <Pressable
+                      key={cat}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setSelectedCategory(cat);
+                      }}
+                      style={[
+                        styles.categoryChip,
+                        {
+                          backgroundColor: active ? colors.primary : colors.card,
+                          borderRadius: 100,
+                          borderColor: active ? colors.primary : colors.border,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.categoryChipText,
+                          { color: active ? "#fff" : colors.foreground },
+                        ]}
+                      >
+                        {cat}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            {/* Menu Items Grid */}
+            <View style={styles.menuGrid}>
               <View style={styles.sectionHeader}>
-                <Feather name="list" size={18} color={colors.primary} />
                 <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-                  {selectedCategory === "all"
-                    ? "All Restaurants"
-                    : categories.find((c) => c.id === selectedCategory)?.label ?? selectedCategory}
+                  {selectedCategory === "All" ? "Full Menu" : selectedCategory}
                 </Text>
                 <Text style={[styles.sectionCount, { color: colors.mutedForeground }]}>
-                  {filteredRestaurants.length}
+                  {categoryItems.length} items
                 </Text>
               </View>
-              {filteredRestaurants.map((r) => (
-                <Pressable
-                  key={r.id}
-                  onPress={() => router.push(`/restaurant/${r.id}` as any)}
-                  style={({ pressed }) => [
-                    styles.listCard,
-                    {
-                      backgroundColor: colors.card,
-                      borderRadius: colors.radius,
-                      borderColor: colors.border,
-                      opacity: pressed ? 0.92 : 1,
-                    },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.listCardIcon,
-                      {
-                        backgroundColor: colors.muted,
-                        borderRadius: colors.radius / 1.5,
-                      },
-                    ]}
-                  >
-                    <Feather name="map-pin" size={20} color={colors.primary} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.listCardTop}>
-                      <Text
-                        style={[styles.listCardName, { color: colors.foreground }]}
-                        numberOfLines={1}
-                      >
-                        {r.name}
-                      </Text>
-                      <View style={styles.ratingPill}>
-                        <Feather name="star" size={11} color={colors.warning} />
-                        <Text
-                          style={[styles.ratingText, { color: colors.foreground }]}
-                        >
-                          {r.rating}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text
-                      style={[styles.listCardMeta, { color: colors.mutedForeground }]}
-                    >
-                      {r.cuisine} · {r.deliveryTime} min ·{" "}
-                      {r.deliveryFee === 0
-                        ? "Free delivery"
-                        : `$${r.deliveryFee.toFixed(2)}`}
-                    </Text>
-                  </View>
-                  <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
-                </Pressable>
-              ))}
+              <MenuSection items={categoryItems} />
             </View>
           </>
         )}
@@ -394,41 +264,47 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  topBar: {
+  header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingBottom: 10,
+    paddingBottom: 12,
     borderBottomWidth: 1,
   },
-  locationRow: {
+  headerLeft: { gap: 3 },
+  restaurantName: {
+    fontSize: 20,
+    fontWeight: "700" as const,
+    fontFamily: "Inter_700Bold",
+  },
+  headerMeta: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
   },
-  locationText: {
-    fontSize: 15,
-    fontWeight: "600" as const,
-    fontFamily: "Inter_600SemiBold",
+  headerMetaText: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
   },
-  topBarActions: {
-    flexDirection: "row",
-    gap: 8,
+  dot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
   },
-  cartIconBtn: {
-    width: 40,
-    height: 40,
+  cartBtn: {
+    width: 42,
+    height: 42,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
   },
   cartBadge: {
     position: "absolute",
-    top: -4,
-    right: -4,
-    width: 17,
-    height: 17,
+    top: -5,
+    right: -5,
+    width: 18,
+    height: 18,
     borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
@@ -447,7 +323,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 14,
     paddingVertical: 11,
-    borderWidth: 1,
     gap: 10,
   },
   searchInput: {
@@ -456,102 +331,61 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     padding: 0,
   },
-  searchResults: {
-    paddingHorizontal: 16,
-    gap: 10,
+  searchSection: {
+    paddingHorizontal: 4,
+    gap: 12,
     paddingTop: 4,
   },
-  noResults: {
-    alignItems: "center",
-    paddingVertical: 40,
-    gap: 10,
-  },
-  noResultsText: {
-    fontSize: 14,
+  searchResultsLabel: {
+    fontSize: 13,
     fontFamily: "Inter_400Regular",
+    paddingHorizontal: 16,
   },
-  searchResultRow: {
+  infoStrip: {
     flexDirection: "row",
     alignItems: "center",
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    gap: 12,
   },
-  searchResultIcon: {
-    width: 40,
-    height: 40,
+  infoItem: {
+    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 5,
   },
-  searchResultName: {
-    fontSize: 15,
-    fontWeight: "600" as const,
-    fontFamily: "Inter_600SemiBold",
-  },
-  searchResultMeta: {
+  infoText: {
     fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    marginTop: 2,
+    fontWeight: "500" as const,
+    fontFamily: "Inter_500Medium",
   },
-  categoriesScroll: {
-    marginTop: 16,
+  infoDivider: {
+    width: 1,
+    height: 20,
   },
+  section: { marginTop: 20 },
   categoriesRow: {
     paddingHorizontal: 16,
     gap: 8,
   },
   categoryChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     borderWidth: 1,
-    gap: 6,
   },
   categoryChipText: {
     fontSize: 13,
     fontWeight: "500" as const,
     fontFamily: "Inter_500Medium",
   },
-  promoBannerWrapper: {
-    paddingHorizontal: 16,
-    marginTop: 16,
-  },
-  promoBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-  },
-  promoTitle: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700" as const,
-    fontFamily: "Inter_700Bold",
-  },
-  promoSubtitle: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    marginTop: 2,
-  },
-  promoTag: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  promoTagText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "700" as const,
-    fontFamily: "Inter_700Bold",
-  },
-  section: {
-    marginTop: 24,
-  },
+  menuGrid: { marginTop: 20 },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     marginBottom: 12,
   },
@@ -559,52 +393,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700" as const,
     fontFamily: "Inter_700Bold",
-    flex: 1,
   },
   sectionCount: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-  },
-  listCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginHorizontal: 16,
-    marginBottom: 10,
-    padding: 12,
-    borderWidth: 1,
-    gap: 12,
-  },
-  listCardIcon: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  listCardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  listCardName: {
-    fontSize: 15,
-    fontWeight: "600" as const,
-    fontFamily: "Inter_600SemiBold",
-    flex: 1,
-  },
-  listCardMeta: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    marginTop: 3,
-  },
-  ratingPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-  },
-  ratingText: {
     fontSize: 13,
-    fontWeight: "600" as const,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "Inter_400Regular",
   },
 });

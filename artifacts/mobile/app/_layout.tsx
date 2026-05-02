@@ -25,7 +25,6 @@ function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="restaurant/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="item/[itemId]" options={{ headerShown: false }} />
       <Stack.Screen
         name="cart"
