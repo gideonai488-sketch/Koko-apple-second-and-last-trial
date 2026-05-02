@@ -22,8 +22,41 @@ import { useOrders } from "@/context/OrdersContext";
 import { useColors } from "@/hooks/useColors";
 
 function generateRef() {
-  return `GK_${Date.now()}_${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  return `KS_${Date.now()}_${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
+
+function Field({
+  label,
+  icon,
+  error,
+  children,
+}: {
+  label: string;
+  icon: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  const colors = useColors();
+  return (
+    <View style={fieldStyles.wrap}>
+      <View style={fieldStyles.labelRow}>
+        <Feather name={icon as any} size={14} color={colors.primary} />
+        <Text style={[fieldStyles.label, { color: colors.foreground }]}>{label}</Text>
+      </View>
+      {children}
+      {error ? (
+        <Text style={[fieldStyles.error, { color: colors.destructive }]}>{error}</Text>
+      ) : null}
+    </View>
+  );
+}
+
+const fieldStyles = StyleSheet.create({
+  wrap: { gap: 6 },
+  labelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  label: { fontSize: 14, fontWeight: "600" as const, fontFamily: "Inter_600SemiBold" },
+  error: { fontSize: 12, fontFamily: "Inter_400Regular" },
+});
 
 export default function CartScreen() {
   const colors = useColors();
@@ -33,8 +66,10 @@ export default function CartScreen() {
   const { placeOrder } = useOrders();
 
   const [placing, setPlacing] = useState(false);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [emailError, setEmailError] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [paystackVisible, setPaystackVisible] = useState(false);
   const [payRef, setPayRef] = useState("");
 
@@ -45,17 +80,21 @@ export default function CartScreen() {
   const topPad = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
   const bottomPad = Platform.OS === "web" ? insets.bottom + 34 : insets.bottom;
 
-  const validateEmail = (e: string) =>
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+  const validate = () => {
+    const errs: Record<string, string> = {};
+    if (!name.trim() || name.trim().length < 2)
+      errs.name = "Please enter your full name";
+    if (!phone.trim() || phone.trim().length < 9)
+      errs.phone = "Please enter a valid phone number";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
+      errs.email = "Please enter a valid email for your receipt";
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
 
   const handleCheckout = () => {
     if (items.length === 0) return;
-
-    if (!validateEmail(email)) {
-      setEmailError("Please enter a valid email for your receipt");
-      return;
-    }
-    setEmailError("");
+    if (!validate()) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setPayRef(generateRef());
     setPaystackVisible(true);
@@ -83,7 +122,7 @@ export default function CartScreen() {
     } catch {
       Alert.alert(
         "Order saved",
-        `Payment successful (ref: ${reference.slice(-8)}). Your order is being prepared.`
+        `Payment successful (ref: ${reference.slice(-8)}). Your order is being prepared!`
       );
       clearCart();
       router.replace("/(tabs)/orders" as any);
@@ -97,12 +136,22 @@ export default function CartScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
+  const inputStyle = [
+    styles.input,
+    {
+      backgroundColor: colors.muted,
+      color: colors.foreground,
+      borderRadius: colors.radius / 1.5,
+    },
+  ];
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {/* Header */}
         <View
           style={[
             styles.header,
@@ -119,12 +168,12 @@ export default function CartScreen() {
           <Text style={[styles.title, { color: colors.foreground }]}>Your Cart</Text>
           {items.length > 0 && (
             <TouchableOpacity
-              onPress={() => {
+              onPress={() =>
                 Alert.alert("Clear Cart", "Remove all items?", [
                   { text: "Cancel", style: "cancel" },
                   { text: "Clear", style: "destructive", onPress: clearCart },
-                ]);
-              }}
+                ])
+              }
             >
               <Text style={[styles.clearText, { color: colors.destructive }]}>Clear</Text>
             </TouchableOpacity>
@@ -158,7 +207,7 @@ export default function CartScreen() {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={[
                 styles.scrollContent,
-                { paddingBottom: bottomPad + 220 },
+                { paddingBottom: bottomPad + 240 },
               ]}
             >
               {items[0] && (
@@ -294,52 +343,61 @@ export default function CartScreen() {
                 <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
               </View>
 
-              {/* Email for Receipt */}
+              {/* Customer Details */}
               <View
                 style={[
-                  styles.emailCard,
+                  styles.detailsCard,
                   {
                     backgroundColor: colors.card,
                     borderRadius: colors.radius,
-                    borderColor: emailError ? colors.destructive : colors.border,
+                    borderColor: colors.border,
                   },
                 ]}
               >
-                <View style={styles.emailHeader}>
-                  <Feather name="mail" size={16} color={colors.primary} />
-                  <Text style={[styles.emailLabel, { color: colors.foreground }]}>
-                    Email for receipt
-                  </Text>
-                </View>
-                <TextInput
-                  style={[
-                    styles.emailInput,
-                    {
-                      color: colors.foreground,
-                      borderColor: emailError ? colors.destructive : colors.border,
-                      backgroundColor: colors.muted,
-                      borderRadius: colors.radius / 1.5,
-                    },
-                  ]}
-                  placeholder="you@example.com"
-                  placeholderTextColor={colors.mutedForeground}
-                  value={email}
-                  onChangeText={(t) => {
-                    setEmail(t);
-                    if (emailError) setEmailError("");
-                  }}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                {emailError ? (
-                  <Text style={[styles.emailError, { color: colors.destructive }]}>
-                    {emailError}
-                  </Text>
-                ) : null}
+                <Text style={[styles.detailsTitle, { color: colors.foreground }]}>
+                  Your Details
+                </Text>
+                <Text style={[styles.detailsSub, { color: colors.mutedForeground }]}>
+                  Required for your order and receipt
+                </Text>
+
+                <Field label="Full Name" icon="user" error={errors.name}>
+                  <TextInput
+                    style={[inputStyle, errors.name ? { borderWidth: 1, borderColor: colors.destructive } : {}]}
+                    placeholder="Kwame Asante"
+                    placeholderTextColor={colors.mutedForeground}
+                    value={name}
+                    onChangeText={(t) => { setName(t); setErrors((e) => ({ ...e, name: "" })); }}
+                    autoCapitalize="words"
+                  />
+                </Field>
+
+                <Field label="Phone Number" icon="phone" error={errors.phone}>
+                  <TextInput
+                    style={[inputStyle, errors.phone ? { borderWidth: 1, borderColor: colors.destructive } : {}]}
+                    placeholder="+233 20 123 4567"
+                    placeholderTextColor={colors.mutedForeground}
+                    value={phone}
+                    onChangeText={(t) => { setPhone(t); setErrors((e) => ({ ...e, phone: "" })); }}
+                    keyboardType="phone-pad"
+                  />
+                </Field>
+
+                <Field label="Email for Receipt" icon="mail" error={errors.email}>
+                  <TextInput
+                    style={[inputStyle, errors.email ? { borderWidth: 1, borderColor: colors.destructive } : {}]}
+                    placeholder="you@example.com"
+                    placeholderTextColor={colors.mutedForeground}
+                    value={email}
+                    onChangeText={(t) => { setEmail(t); setErrors((e) => ({ ...e, email: "" })); }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </Field>
               </View>
 
-              {/* Paystack Security Badge */}
+              {/* Security Badge */}
               <View style={styles.securityBadge}>
                 <Feather name="lock" size={13} color={colors.mutedForeground} />
                 <Text style={[styles.securityText, { color: colors.mutedForeground }]}>
@@ -391,6 +449,8 @@ export default function CartScreen() {
         <PaystackPayment
           visible={paystackVisible}
           amount={grandTotal}
+          name={name.trim()}
+          phone={phone.trim()}
           email={email.trim()}
           reference={payRef}
           onSuccess={handlePaymentSuccess}
@@ -418,10 +478,7 @@ const styles = StyleSheet.create({
     fontWeight: "700" as const,
     fontFamily: "Inter_700Bold",
   },
-  clearText: {
-    fontSize: 14,
-    fontFamily: "Inter_500Medium",
-  },
+  clearText: { fontSize: 14, fontFamily: "Inter_500Medium" },
   emptyState: {
     flex: 1,
     alignItems: "center",
@@ -429,31 +486,16 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingBottom: 80,
   },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "600" as const,
-    fontFamily: "Inter_600SemiBold",
-  },
+  emptyTitle: { fontSize: 20, fontWeight: "600" as const, fontFamily: "Inter_600SemiBold" },
   emptyText: {
     fontSize: 14,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
     paddingHorizontal: 40,
   },
-  browseBtn: {
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    marginTop: 8,
-  },
-  browseBtnText: {
-    fontSize: 16,
-    fontWeight: "600" as const,
-    fontFamily: "Inter_600SemiBold",
-  },
-  scrollContent: {
-    padding: 16,
-    gap: 12,
-  },
+  browseBtn: { paddingHorizontal: 24, paddingVertical: 14, marginTop: 8 },
+  browseBtnText: { fontSize: 16, fontWeight: "600" as const, fontFamily: "Inter_600SemiBold" },
+  scrollContent: { padding: 16, gap: 12 },
   restaurantLabel: {
     fontSize: 12,
     fontFamily: "Inter_600SemiBold",
@@ -469,32 +511,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   itemInfo: { flex: 1, gap: 4 },
-  itemName: {
-    fontSize: 15,
-    fontWeight: "500" as const,
-    fontFamily: "Inter_500Medium",
-  },
-  itemPrice: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-  },
-  itemActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
+  itemName: { fontSize: 15, fontWeight: "500" as const, fontFamily: "Inter_500Medium" },
+  itemPrice: { fontSize: 14, fontFamily: "Inter_400Regular" },
+  itemActions: { flexDirection: "row", alignItems: "center", gap: 10 },
   removeBtn: { padding: 6 },
-  qtyControl: {
-    flexDirection: "row",
-    alignItems: "center",
-    height: 34,
-  },
-  qtyBtn: {
-    width: 30,
-    height: 34,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  qtyControl: { flexDirection: "row", alignItems: "center", height: 34 },
+  qtyBtn: { width: 30, height: 34, alignItems: "center", justifyContent: "center" },
   qtyText: {
     fontSize: 14,
     fontWeight: "600" as const,
@@ -502,41 +524,19 @@ const styles = StyleSheet.create({
     minWidth: 20,
     textAlign: "center",
   },
-  summaryCard: {
-    padding: 16,
-    borderWidth: 1,
-    gap: 10,
-  },
+  summaryCard: { padding: 16, borderWidth: 1, gap: 10 },
   summaryTitle: {
     fontSize: 16,
     fontWeight: "600" as const,
     fontFamily: "Inter_600SemiBold",
     marginBottom: 2,
   },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  summaryLabel: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-  },
-  summaryValue: {
-    fontSize: 14,
-    fontFamily: "Inter_500Medium",
-  },
+  summaryRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  summaryLabel: { fontSize: 14, fontFamily: "Inter_400Regular" },
+  summaryValue: { fontSize: 14, fontFamily: "Inter_500Medium" },
   divider: { height: 1, marginVertical: 4 },
-  totalLabel: {
-    fontSize: 16,
-    fontWeight: "700" as const,
-    fontFamily: "Inter_700Bold",
-  },
-  totalValue: {
-    fontSize: 18,
-    fontWeight: "700" as const,
-    fontFamily: "Inter_700Bold",
-  },
+  totalLabel: { fontSize: 16, fontWeight: "700" as const, fontFamily: "Inter_700Bold" },
+  totalValue: { fontSize: 18, fontWeight: "700" as const, fontFamily: "Inter_700Bold" },
   addressCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -545,41 +545,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   addressInfo: { flex: 1 },
-  addressTitle: {
-    fontSize: 14,
-    fontWeight: "600" as const,
-    fontFamily: "Inter_600SemiBold",
-  },
-  addressText: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-  },
-  emailCard: {
-    padding: 14,
-    borderWidth: 1,
-    gap: 10,
-  },
-  emailHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  emailLabel: {
-    fontSize: 14,
-    fontWeight: "600" as const,
-    fontFamily: "Inter_600SemiBold",
-  },
-  emailInput: {
+  addressTitle: { fontSize: 14, fontWeight: "600" as const, fontFamily: "Inter_600SemiBold" },
+  addressText: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  detailsCard: { padding: 16, borderWidth: 1, gap: 14 },
+  detailsTitle: { fontSize: 15, fontWeight: "700" as const, fontFamily: "Inter_700Bold" },
+  detailsSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: -8 },
+  input: {
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 11,
     fontSize: 14,
     fontFamily: "Inter_400Regular",
-    borderWidth: 1,
-  },
-  emailError: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    marginTop: -4,
+    borderRadius: 8,
   },
   securityBadge: {
     flexDirection: "row",
@@ -588,10 +564,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 4,
   },
-  securityText: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-  },
+  securityText: { fontSize: 12, fontFamily: "Inter_400Regular" },
   checkoutBar: {
     position: "absolute",
     bottom: 0,
@@ -608,9 +581,5 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 16,
   },
-  checkoutText: {
-    fontSize: 16,
-    fontWeight: "700" as const,
-    fontFamily: "Inter_700Bold",
-  },
+  checkoutText: { fontSize: 16, fontWeight: "700" as const, fontFamily: "Inter_700Bold" },
 });

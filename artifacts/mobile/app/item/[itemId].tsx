@@ -87,7 +87,10 @@ export default function ItemDetailScreen() {
       price: item.price,
     });
     setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
+    setTimeout(() => {
+      setAdded(false);
+      router.push("/cart" as any);
+    }, 700);
   };
 
   return (
