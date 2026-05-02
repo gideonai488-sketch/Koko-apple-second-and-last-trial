@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "90x12UBEN_NZcw7nXSmdN"
@@ -60,3 +59,15 @@ id = "RVRLWuSL02-oR7tWtnk-u"
 uri = "file://artifacts/mobile/assets/images/item_dessert.png"
 type = "image"
 title = "dessert item image"
+
+[[generated]]
+id = "eue3o1EuqX6Zh8YQlWuoF"
+uri = "file://attached_assets/generated_images/generated_image.png"
+type = "image"
+title = "generated_image"
+
+[[outputs]]
+id = "HDOKHJDX8yqW75Hkn3J2k"
+uri = "file://artifacts/mobile/APP_STORE_TODO.md"
+type = "text"
+title = "1st Koko Spot — App Store Launch Checklist"

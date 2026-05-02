@@ -1,6 +1,8 @@
 import { Feather } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
+  Alert,
   Platform,
   ScrollView,
   StyleSheet,
@@ -10,6 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
 interface SettingRowProps {
@@ -34,10 +37,7 @@ function SettingRow({
   return (
     <TouchableOpacity
       onPress={onPress}
-      style={[
-        styles.settingRow,
-        { borderBottomColor: colors.border },
-      ]}
+      style={[styles.settingRow, { borderBottomColor: colors.border }]}
       activeOpacity={0.7}
     >
       <View
@@ -80,9 +80,29 @@ function SettingRow({
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { user, signOut } = useAuth();
 
   const topPad = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 + 84 : 100;
+
+  const displayName =
+    user?.user_metadata?.full_name ??
+    user?.email?.split("@")[0] ??
+    "Guest";
+  const initial = displayName[0]?.toUpperCase() ?? "K";
+  const email = user?.email ?? "";
+
+  const handleSignOut = () => {
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: signOut,
+      },
+    ]);
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -114,16 +134,18 @@ export default function ProfileScreen() {
             ]}
           >
             <Text style={[styles.avatarInitial, { color: colors.primaryForeground }]}>
-              A
+              {initial}
             </Text>
           </View>
           <View style={styles.userInfo}>
             <Text style={[styles.userName, { color: colors.foreground }]}>
-              Alex Johnson
+              {displayName}
             </Text>
-            <Text style={[styles.userEmail, { color: colors.mutedForeground }]}>
-              alex@example.com
-            </Text>
+            {email ? (
+              <Text style={[styles.userEmail, { color: colors.mutedForeground }]}>
+                {email}
+              </Text>
+            ) : null}
           </View>
           <Feather name="edit-2" size={18} color={colors.mutedForeground} />
         </View>
@@ -131,78 +153,112 @@ export default function ProfileScreen() {
         <View
           style={[
             styles.section,
-            {
-              backgroundColor: colors.card,
-              borderRadius: colors.radius,
-              borderColor: colors.border,
-            },
+            { backgroundColor: colors.card, borderRadius: colors.radius, borderColor: colors.border },
           ]}
         >
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
             Account
           </Text>
-          <SettingRow icon="map-pin" label="Saved Addresses" />
-          <SettingRow icon="credit-card" label="Payment Methods" />
-          <SettingRow icon="tag" label="Promo Codes" />
-          <SettingRow icon="gift" label="Loyalty Points" value="1,240 pts" />
+          <SettingRow
+            icon="map-pin"
+            label="Saved Addresses"
+            onPress={() => router.push("/saved-addresses" as any)}
+          />
+          <SettingRow
+            icon="credit-card"
+            label="Payment Methods"
+            onPress={() => router.push("/payment-methods" as any)}
+          />
+          <SettingRow
+            icon="tag"
+            label="Promo Codes"
+            onPress={() => router.push("/promo-codes" as any)}
+          />
+          <SettingRow
+            icon="gift"
+            label="Loyalty Points"
+            value="1,240 pts"
+            onPress={() => router.push("/loyalty-points" as any)}
+          />
         </View>
 
         <View
           style={[
             styles.section,
-            {
-              backgroundColor: colors.card,
-              borderRadius: colors.radius,
-              borderColor: colors.border,
-            },
+            { backgroundColor: colors.card, borderRadius: colors.radius, borderColor: colors.border },
           ]}
         >
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
             Preferences
           </Text>
-          <SettingRow icon="bell" label="Notifications" />
-          <SettingRow icon="moon" label="Dark Mode" />
-          <SettingRow icon="globe" label="Language" value="English" />
+          <SettingRow
+            icon="bell"
+            label="Notifications"
+            onPress={() => router.push("/notifications" as any)}
+          />
+          <SettingRow
+            icon="moon"
+            label="Dark Mode"
+            onPress={() => router.push("/dark-mode" as any)}
+          />
+          <SettingRow
+            icon="globe"
+            label="Language"
+            value="English"
+            onPress={() => router.push("/language" as any)}
+          />
         </View>
 
         <View
           style={[
             styles.section,
-            {
-              backgroundColor: colors.card,
-              borderRadius: colors.radius,
-              borderColor: colors.border,
-            },
+            { backgroundColor: colors.card, borderRadius: colors.radius, borderColor: colors.border },
           ]}
         >
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
             Support
           </Text>
-          <SettingRow icon="help-circle" label="Help Center" />
-          <SettingRow icon="shield" label="Privacy Policy" />
-          <SettingRow icon="file-text" label="Terms of Service" />
+          <SettingRow
+            icon="help-circle"
+            label="Help Center"
+            onPress={() => router.push("/help-center" as any)}
+          />
+          <SettingRow
+            icon="shield"
+            label="Privacy Policy"
+            onPress={() => router.push("/privacy-policy" as any)}
+          />
+          <SettingRow
+            icon="file-text"
+            label="Terms of Service"
+            onPress={() => router.push("/terms-of-service" as any)}
+          />
         </View>
 
         <View
           style={[
             styles.section,
-            {
-              backgroundColor: colors.card,
-              borderRadius: colors.radius,
-              borderColor: colors.border,
-            },
+            { backgroundColor: colors.card, borderRadius: colors.radius, borderColor: colors.border },
           ]}
         >
+          <SettingRow
+            icon="trash-2"
+            label="Delete Account"
+            showChevron
+            danger
+            onPress={() => router.push("/delete-account" as any)}
+          />
           <SettingRow
             icon="log-out"
             label="Sign Out"
             showChevron={false}
             danger
+            onPress={handleSignOut}
           />
         </View>
 
         <Text style={[styles.version, { color: colors.mutedForeground }]}>
-          Version 1.0.0
+          1st Koko Spot · Version 1.0.0
         </Text>
       </ScrollView>
     </View>
@@ -210,13 +266,8 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: 16,
-    gap: 16,
-  },
+  container: { flex: 1 },
+  content: { paddingHorizontal: 16, gap: 16 },
   screenTitle: {
     fontSize: 26,
     fontWeight: "700" as const,
@@ -241,9 +292,7 @@ const styles = StyleSheet.create({
     fontWeight: "700" as const,
     fontFamily: "Inter_700Bold",
   },
-  userInfo: {
-    flex: 1,
-  },
+  userInfo: { flex: 1 },
   userName: {
     fontSize: 17,
     fontWeight: "600" as const,
@@ -254,10 +303,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     marginTop: 2,
   },
-  section: {
-    borderWidth: 1,
-    overflow: "hidden",
-  },
+  section: { borderWidth: 1, overflow: "hidden" },
   sectionLabel: {
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",

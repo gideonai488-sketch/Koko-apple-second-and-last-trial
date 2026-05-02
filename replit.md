@@ -4,6 +4,34 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
+## Mobile App — 1st Koko Spot (`artifacts/mobile`)
+
+Expo/React Native food ordering app for a West African restaurant.
+
+### Features
+- Supabase backend (products, orders, order_items, profiles tables)
+- Supabase Auth (email/password sign-in + sign-up with auth gate)
+- Paystack payment integration (GHS currency, WebView-based checkout)
+- Dark mode (Light / Dark / System — persisted via AsyncStorage)
+- Netflix-style promo carousel + Flash Deals countdown
+- Category filtering, product detail pages, cart
+- All profile sub-pages: Saved Addresses, Payment Methods, Promo Codes, Loyalty Points, Notifications, Dark Mode, Language, Help Center, Privacy Policy, Terms of Service, Delete Account
+
+### EAS / App Store Config
+- App name: "1st Koko Spot"
+- Bundle ID (iOS): `com.firstkokospot.app`
+- Package (Android): `com.firstkokospot.app`
+- Scheme: `firstkokospot`
+- See `artifacts/mobile/APP_STORE_TODO.md` for full launch checklist
+
+### Key Files
+- `artifacts/mobile/app.json` — Expo config with bundle IDs
+- `artifacts/mobile/eas.json` — EAS build profiles
+- `artifacts/mobile/context/AuthContext.tsx` — Supabase auth
+- `artifacts/mobile/context/ThemeContext.tsx` — Dark mode state
+- `artifacts/mobile/lib/supabase.ts` — Supabase client
+- `artifacts/mobile/APP_STORE_TODO.md` — App Store launch checklist
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces

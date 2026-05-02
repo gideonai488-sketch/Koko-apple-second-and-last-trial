@@ -27,7 +27,7 @@ export interface PromoSlide {
 }
 
 export const restaurant = {
-  name: "Ghana Kitchen",
+  name: "1st Koko Spot",
   tagline: "Authentic West African home cooking",
   address: "14 Osu Road, Accra",
   phone: "+233 302 123 456",
