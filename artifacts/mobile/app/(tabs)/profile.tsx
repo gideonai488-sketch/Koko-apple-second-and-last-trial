@@ -177,7 +177,7 @@ export default function ProfileScreen() {
           <SettingRow
             icon="gift"
             label="Loyalty Points"
-            value="1,240 pts"
+            value="0 pts"
             onPress={() => router.push("/loyalty-points" as any)}
           />
         </View>

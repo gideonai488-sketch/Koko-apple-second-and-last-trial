@@ -9,7 +9,10 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "APP_ENV": "development"
+        "APP_ENV": "development",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://whyclfpsjhmmckxgjcan.supabase.co",
+        "EXPO_PUBLIC_PAYSTACK_PUBLIC_KEY": "pk_live_6534eeae448585db1377764e1eadda7f414117a9",
+        "EXPO_PUBLIC_DOMAIN": "YOUR_DEPLOYED_API_DOMAIN"
       }
     },
     "preview": {
@@ -18,13 +21,19 @@
         "buildType": "apk"
       },
       "env": {
-        "APP_ENV": "preview"
+        "APP_ENV": "preview",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://whyclfpsjhmmckxgjcan.supabase.co",
+        "EXPO_PUBLIC_PAYSTACK_PUBLIC_KEY": "pk_live_6534eeae448585db1377764e1eadda7f414117a9",
+        "EXPO_PUBLIC_DOMAIN": "YOUR_DEPLOYED_API_DOMAIN"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "APP_ENV": "production"
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://whyclfpsjhmmckxgjcan.supabase.co",
+        "EXPO_PUBLIC_PAYSTACK_PUBLIC_KEY": "pk_live_6534eeae448585db1377764e1eadda7f414117a9",
+        "EXPO_PUBLIC_DOMAIN": "YOUR_DEPLOYED_API_DOMAIN"
       }
     }
   },
