@@ -18,6 +18,7 @@
       "bundleIdentifier": "com.firstkokospot.app",
       "buildNumber": "1",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Used to scan QR codes for promo offers.",
         "NSLocationWhenInUseUsageDescription": "Used to suggest delivery addresses near you.",
         "NSPhotoLibraryUsageDescription": "Used to update your profile photo."
